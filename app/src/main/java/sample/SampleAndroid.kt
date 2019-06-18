@@ -8,13 +8,6 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 
-actual class Sample {
-    actual fun checkMe() = 44
-}
-
-actual object Platform {
-    actual val name: String = "Android"
-}
 
 class MainActivity : AppCompatActivity() {
 
@@ -23,8 +16,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.e("SampleAndroid", "onCreate$equation")
-        hello()
-        Sample().checkMe()
         setContentView(R.layout.activity_main)
     }
 
