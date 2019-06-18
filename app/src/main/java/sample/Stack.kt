@@ -26,6 +26,10 @@ class Stack<T> : MutableIterable<T> {
         return StackIterator()
     }
 
+    operator fun get(index: Int): T {
+        return elements[index]
+    }
+
     inner class StackIterator : MutableIterator<T> {
         var current: Int = 0
 

@@ -1,10 +1,10 @@
 package sample
 
-import java.lang.Error
-import kotlin.math.pow
-import kotlin.math.sqrt
+import java.lang.StringBuilder
 
 class Calculator {
+
+    var mRpnExpression = Stack<String>()
 
     fun isStringAnEquation(p_equation: String): Boolean {
         if (p_equation.isEmpty())
@@ -21,207 +21,146 @@ class Calculator {
         return temp
     }
 
-    fun run(input: String): String {
+    fun run(input: String): Boolean {
 
         val operators: Stack<Char> = Stack()
-        var output = ""
-
-        var lastCharacter = ' '
-        var dotCount = 0
-        for (character in input) {
-            if(character == '.') {
-                dotCount++
-                if(lastCharacter !in '0'..'9' || dotCount > 1) {
-//                    window.alert("Cannot do equation on provided such string")
-                    throw Exception("Cannot introduce such string")
+        var isNegative = false
+        var expectOperator = false
+        var number = StringBuilder()
+        var count = 0
+        var operator: Char
+        for(character in input) {
+            if (Character.isDigit(character)) {
+                while (count < input.length && (Character.isDigit(input[count]) || character === '.')) {
+                    number.append(character)
+                    count++
                 }
-            }
-            if (character == '(') {
-                if(lastCharacter in '0'..'9') {
-                    output += " "
+                count--
+                if (isNegative) {
+                    var temp = "-$number"
+                    number.clear()
+                    number.append(temp)
+                    isNegative = false
                 }
-                operators.push(character)
-            }
-            else if (character == ')') {
-                if(lastCharacter in '0'..'9') {
-                    output += " "
-                }
-                while (operators.peek() != '(') {
-                    output += "${operators.peek()} "
-                    operators.pop()
-                }
-                operators.pop()
-            }
-            else if (isOperator(character)) {
-                if(lastCharacter in '0'..'9') {
-                    output += " "
-                }
-                if((lastCharacter == '+'
-                            || lastCharacter =='*' || lastCharacter == '/' || lastCharacter == '%'
-                            || lastCharacter == '^' ) && character == '-' ) {
-
-                    output += "-"
-                }
-                else {
-                    if (operators.isEmpty() || priority(character) > priority(operators.peek())) {
-                        operators.push(character)
-                    } else {
-                        while (priority(operators.peek()) >= priority(character)) {
-                            output += "${operators.peek()} "
-                            operators.pop()
+                mRpnExpression.push(number.toString())
+                number.setLength(0)
+                expectOperator = true
+            } else {
+                operator = input.substring(count, count + 1).first()
+                if (isOperator(operator)) {
+                    if (!expectOperator && operator == '-') {
+                        isNegative = true
+                        count++
+                        continue
+                    }
+                    while (operators.size() !== 0 && operators.peek()!! != '('
+                        && (priority(operators.peek()) > priority(operator) || priority(operators.peek()) === priority(
+                            operator
+                        ) && operators.peek()!! != operator)
+                    ) {
+                        mRpnExpression.push(operators.pop().toString())
+                    }
+                    operators.push(operator)
+                    expectOperator = false
+                } else {
+                    if (operator == '(')
+                        operators.push(operator)
+                    if (operator == ')') {
+                        while (operators.peek()!! != '(') {
+                            mRpnExpression.push(operators.pop().toString())
                         }
-                        operators.push(character)
+                        operators.pop()
                     }
                 }
             }
-            else {
-                if((character in '0'..'9' || character == '.') &&
-                    (lastCharacter in '0'..'9' || lastCharacter == ' ')
-                    || lastCharacter == '-' || lastCharacter == '+'
-                    || lastCharacter == '*' || lastCharacter == '/' || lastCharacter == '%'
-                    || lastCharacter == '^' || lastCharacter == 'v'|| lastCharacter == '(') {
-                    output += "$character"
-                }
-                else {
-                    output += "$character "
-                }
-            }
-
-            lastCharacter = character
+            count++
         }
-        while (!operators.isEmpty()) {
-            output += " ${operators.peek()}"
-            operators.pop()
+        while (operators.size() > 0) {
+            mRpnExpression.push(operators.pop().toString())
         }
 
-        return output
+        return mRpnExpression.size() != null
     }
 
-    fun calculate(input: String): Double?
-    {
-        var stackDouble: Stack<Double> = Stack()
+
+    fun calculate(): String {
+        var numbers = Stack<String>()
+        var operator: String
+        var firstNumber: String
+        var secondNumber: String
+        
+        for(index in 0 until mRpnExpression.size()) {
+            try {
+                operator = mRpnExpression[index]
+                if (isOperator(operator.first()) && operator.length == 1) {
+                    firstNumber = numbers.pop()!!
+                    secondNumber = numbers.pop()!!
+                    numbers.push(performOperation(operator, firstNumber, secondNumber))
+                } else {
+                    numbers.push(operator)
+                }
+            }
+            catch(pExc: Exception) {
+                throw pExc
+            }
+        }
+        if(numbers.size()==1)
+        {
+            return numbers.first().toString()
+        }
+        else
+        {
+            throw Exception("Bad syntax")
+        }
+    }
+
+    private fun performOperation(operator: String, firstNumber: String, secondNumber: String): String {
         var result = 0.0
-        var temp = ""
-        var it = 1
-        for (character in input) {
-            if (isOperator(character)) {
-                if(temp.lastOrNull() in '0'..'9') {
-                    stackDouble.push(temp.toDouble())
-                    temp = ""
-                }
-                if(character == '-' && input[it] != ' ') {
-                    temp += character
-                    if(it == input.length) {
-                        result = doEquation(stackDouble, character)
-                    }
-                    continue
-                }
-                result = doEquation(stackDouble, character)
+        when(operator)
+        {
+            "+" -> {
+                result = sum(java.lang.Double.parseDouble(secondNumber), java.lang.Double.parseDouble(firstNumber))
+                return result.toString()
             }
-            else if (character == ' ') {
-                if(temp.lastOrNull() in '0'..'9') {
-                    stackDouble.push(temp.toDouble())
-                    temp = ""
-                }
+            "-" -> {
+                result = substract(java.lang.Double.parseDouble(secondNumber), java.lang.Double.parseDouble(firstNumber))
+                return result.toString()
             }
-            else {
-                temp += character
+            "*" -> {
+                result = multiply(java.lang.Double.parseDouble(secondNumber), java.lang.Double.parseDouble(firstNumber))
+                return result.toString()
             }
-            it += 1
+            "/" -> {
+                result = divide(java.lang.Double.parseDouble(secondNumber), java.lang.Double.parseDouble(firstNumber))
+                return result.toString()
+            }
+            "^" -> {
+                result = power(java.lang.Double.parseDouble(secondNumber), java.lang.Double.parseDouble(firstNumber))
+                return result.toString()
+            }
+            else -> throw Exception("Invalid operator")
         }
-        return result
+        return result.toString()
     }
 
-    private fun doEquation(stack: Stack<Double>, c: Char): Double {
-        var temp = 0.0
-        var d: Double
+    private fun <T : Number> sum(num1: T, num2: T): Double {
+        return num1.toDouble() + num2.toDouble()
+    }
 
-        if(stack.isEmpty()) {
-//            window.alert("Impossible operation")
-            throw Exception("There were no numbers provided, please type another equation")
-        }
-        when (c) {
-            '-' -> {
-                temp = stack.peek()!!
-                if(stack.size() >= 2) {
-                    stack.pop()
-                    d = stack.peek()!!
-                    temp = d - temp
-                    stack.replaceTop(temp)
-                }
-                else {
-                    throw Error("")
-                }
-            }
-            '+' -> {
-                temp = stack.peek()!!
-                if(stack.size() >= 2) {
-                    stack.pop()
-                    d = stack.peek()!!
-                    temp = d + temp
-                    stack.replaceTop(temp)
-                }
-                else {
-                    throw Error("")
-                }
-            }
-            '*' -> {
-                temp = stack.peek()!!
-                if(stack.size() >= 2) {
-                    stack.pop()
-                    d = stack.peek()!!
-                    temp = d * temp
-                    stack.replaceTop(temp)
-                }
-                else {
-                    throw Error("")
-                }
+    private fun <T : Number> substract(num1: T, num2: T): Double {
+        return num1.toDouble() - num2.toDouble()
+    }
 
-            }
-            '/' -> {
-                temp = stack.peek()!!
-                if(stack.size() >= 2) {
-                    stack.pop()
-                    d = stack.peek()!!
-                    temp = d / temp
-                    stack.replaceTop(temp)
-                }
-                else {
-                    throw Error("")
-                }
-            }
-            '%' -> {
-                temp = stack.peek()!!
-                if(stack.size() >= 2) {
-                    stack.pop()
-                    d = stack.peek()!!
-                    temp = d%temp
-                    stack.replaceTop(temp)
-                }
-                else {
-                    throw Error("")
-                }
-            }
-            '^' -> {
-                temp = stack.peek()!!
-                if(stack.size() >= 2) {
-                    stack.pop()
-                    d = stack.peek()!!
-                    temp = d.pow(temp)
-                    stack.replaceTop(temp)
-                }
-                else {
-                    throw Error("")
-                }
+    private fun <T : Number> multiply(num1: T, num2: T): Double {
+        return num1.toDouble() * num2.toDouble()
+    }
 
-            }
-            'v' -> {
-                temp = stack.peek()!!
-                temp = sqrt(temp)
-                stack.replaceTop(temp)
-            }
-        }
-        return temp
+    private fun <T : Number> divide(num1: T, num2: T): Double {
+        return num1.toDouble() / num2.toDouble()
+    }
+
+    private fun <T : Number> power(num: T, power: T): Double {
+        return Math.pow(num.toDouble(), power.toDouble())
     }
 
     private fun priority(peek: Char?): Int {
@@ -239,4 +178,5 @@ class Calculator {
             else -> false
         }
     }
+
 }

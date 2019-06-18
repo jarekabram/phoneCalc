@@ -2,13 +2,11 @@ package sample
 
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.os.PersistableBundle
 import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
-import org.w3c.dom.Text
-import java.lang.Error
+import android.widget.Toast
 
 actual class Sample {
     actual fun checkMe() = 44
@@ -24,7 +22,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.e("SampleAndroid", "onCreate"+ equation)
+        Log.e("SampleAndroid", "onCreate$equation")
         hello()
         Sample().checkMe()
         setContentView(R.layout.activity_main)
@@ -33,10 +31,8 @@ class MainActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle?) {
         super.onSaveInstanceState(outState)
 
-        Log.e("SampleAndroid", "onSaveInstanceState" + equation)
-        if (outState != null) {
-            outState.putString("p", equation)
-        }
+        Log.e("SampleAndroid", "onSaveInstanceState$equation")
+        outState?.putString("p", equation)
         println("onSaveInstanceState")
     }
 
@@ -48,7 +44,7 @@ class MainActivity : AppCompatActivity() {
             val textView: TextView = findViewById(R.id.equation_text_view)
             textView.text = equation
         }
-        Log.e("SampleAndroid", "onRestoreInstanceState"+ equation)
+        Log.e("SampleAndroid", "onRestoreInstanceState$equation")
     }
     fun addCharacter(view: View) {
         var button : Button  = view as Button
@@ -77,17 +73,20 @@ class MainActivity : AppCompatActivity() {
         var button : Button  = view as Button
         var calculator = Calculator()
 
-        if (calculator.isStringAnEquation(equation)) {
-            var str = calculator.run(equation)
-            var result = calculator.calculate(str)
-
-            val textView: TextView = findViewById(R.id.equation_text_view)
-            textView.text = result.toString()
+        try {
+            if (calculator.isStringAnEquation(equation)) {
+                var result = ""
+                if (calculator.run(equation)) {
+                    result = calculator.calculate()
+                }
+                val textView: TextView = findViewById(R.id.equation_text_view)
+                textView.text = result
+            } else {
+                throw Exception("Introduced string is not an equation")
+            }
         }
-        else {
-            throw Error("Introduced string is not an equation")
+        catch(pExc: Exception) {
+            Toast.makeText(this, pExc.message, Toast.LENGTH_LONG).show()
         }
     }
-
-
 }
